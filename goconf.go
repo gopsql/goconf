@@ -28,7 +28,7 @@ const (
 			}
 		}
 		v := fmt.Sprint(rv.Field(i).Interface())
-		output += "\t" + rt.Field(i).Name + " = " + strconv.Quote(v) + "\n"
+		output += "\t" + rt.Field(i).Name + " = " + quoteString(v) + "\n"
 	}
 	output += `)
 `
@@ -79,4 +79,24 @@ func Unmarshal(input []byte, v interface{}) error {
 		}
 	}
 	return nil
+}
+
+func quoteString(in string) string {
+	if useBackquote(in) {
+		return "`" + in + "`"
+	}
+	return strconv.Quote(in)
+}
+
+func useBackquote(in string) bool {
+	if strings.Count(in, "\n") == 0 {
+		return false
+	}
+	lines := strings.Split(in, "\n")
+	for _, line := range lines {
+		if !strconv.CanBackquote(line) {
+			return false
+		}
+	}
+	return true
 }
