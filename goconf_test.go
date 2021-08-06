@@ -1,22 +1,29 @@
 package goconf
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 func ExampleMarshal() {
-	c, err := Marshal(struct {
+	a := struct {
 		Foo string `
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua.`
 		Hello string
 	}{
 		"Bar", "World",
-	})
+	}
+	c, err := Marshal(a)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(string(c))
+	b, err := json.MarshalIndent(ToConfigs(a), "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(b))
 	// Output:
 	// package config
 	//
@@ -27,6 +34,19 @@ incididunt ut labore et dolore magna aliqua.`
 	//
 	// 	Hello = "World"
 	// )
+	//
+	// [
+	//   {
+	//     "Key": "Foo",
+	//     "Value": "Bar",
+	//     "Comment": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor\nincididunt ut labore et dolore magna aliqua."
+	//   },
+	//   {
+	//     "Key": "Hello",
+	//     "Value": "World",
+	//     "Comment": ""
+	//   }
+	// ]
 }
 
 func ExampleUnmarshal() {

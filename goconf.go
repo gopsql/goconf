@@ -10,6 +10,27 @@ import (
 	"strings"
 )
 
+type Config struct {
+	Key     string
+	Value   string
+	Comment string
+}
+
+func ToConfigs(c interface{}) (configs []Config) {
+	rt := reflect.TypeOf(c)
+	rv := reflect.ValueOf(c)
+	for i := 0; i < rt.NumField(); i++ {
+		v := fmt.Sprint(rv.Field(i).Interface())
+		tag := strings.TrimSpace(string(rt.Field(i).Tag))
+		configs = append(configs, Config{
+			Key:     rt.Field(i).Name,
+			Value:   v,
+			Comment: tag,
+		})
+	}
+	return
+}
+
 func Marshal(c interface{}) ([]byte, error) {
 	output := `package config
 
