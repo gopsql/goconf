@@ -1,6 +1,7 @@
 package goconf
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -15,6 +16,14 @@ type Config struct {
 	Value   string
 	Comment string
 }
+
+type CanSetString interface {
+	SetString(string) error
+}
+
+var (
+	ErrNotStruct = errors.New("target must be a struct or a pointer to a struct")
+)
 
 func ToConfigs(c interface{}) (configs []Config) {
 	rt := reflect.TypeOf(c)
@@ -38,6 +47,16 @@ const (
 `
 	rt := reflect.TypeOf(c)
 	rv := reflect.ValueOf(c)
+	if !rv.IsValid() {
+		return nil, ErrNotStruct
+	}
+	if rt.Kind() == reflect.Ptr {
+		rt = rt.Elem()
+		rv = rv.Elem()
+	}
+	if rt.Kind() != reflect.Struct {
+		return nil, ErrNotStruct
+	}
 	for i := 0; i < rt.NumField(); i++ {
 		if i > 0 {
 			output += "\n"
@@ -87,11 +106,20 @@ func Unmarshal(input []byte, v interface{}) error {
 				}
 				for _, name := range vs.Names {
 					field := rv.Elem().FieldByName(name.Name)
+					if !field.IsValid() {
+						continue
+					}
+					if field.Kind() == reflect.Ptr && field.IsNil() {
+						field.Set(reflect.New(field.Type().Elem()))
+					}
 					if field.Kind() == reflect.String {
 						field.SetString(value)
-					} else if i, ok := field.Addr().Interface().(interface{ SetString(string) error }); ok {
-						err := i.SetString(value)
-						if err != nil {
+					} else if i, ok := field.Interface().(CanSetString); ok {
+						if err := i.SetString(value); err != nil {
+							return err
+						}
+					} else if i, ok := field.Addr().Interface().(CanSetString); ok {
+						if err := i.SetString(value); err != nil {
 							return err
 						}
 					}
