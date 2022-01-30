@@ -27,3 +27,8 @@ fmt.Println(string(c))
 // 	Hello = "World"
 // )
 ```
+
+For custom data types, Marshal() uses its String() method, Unmarshal() uses its SetString() method.
+
+Examples:
+- [RSA private key](https://github.com/gopsql/jwt/blob/v1.0.0/jwt.go#L117-L150)
