@@ -12,6 +12,9 @@ func (b *bar) SetString(input string) error { b.Code = input; return nil }
 func (b bar) String() string                { return b.Code }
 
 func Test(t *testing.T) {
+	if ToConfigs(nil) != nil {
+		t.Error("ToConfigs(nil) should return nil")
+	}
 	if _, err := Marshal(nil); err != ErrNotStruct {
 		t.Error("Marshal(nil) should return ErrNotStruct")
 	}

@@ -25,8 +25,16 @@ var (
 	ErrNotStruct = errors.New("target must be a struct or a pointer to a struct")
 )
 
+// ToConfigs parses a struct and returns list of its keys, values and comments
+// (struct tag values).
 func ToConfigs(c interface{}) (configs []Config) {
+	if c == nil {
+		return
+	}
 	rt := reflect.TypeOf(c)
+	if rt.Kind() != reflect.Struct {
+		return
+	}
 	rv := reflect.ValueOf(c)
 	for i := 0; i < rt.NumField(); i++ {
 		ft := rt.Field(i)
@@ -44,6 +52,8 @@ func ToConfigs(c interface{}) (configs []Config) {
 	return
 }
 
+// Marshal collects exported keys, values and comments (tag values) of a struct
+// and puts them in a Go file with constant strings.
 func Marshal(c interface{}) ([]byte, error) {
 	output := `package config
 
@@ -85,6 +95,8 @@ const (
 	return []byte(output), nil
 }
 
+// Unmarshal gets all constants in a Go file and assign them to the struct
+// provided.
 func Unmarshal(input []byte, v interface{}) error {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "", string(input), 0)
