@@ -29,10 +29,14 @@ func ToConfigs(c interface{}) (configs []Config) {
 	rt := reflect.TypeOf(c)
 	rv := reflect.ValueOf(c)
 	for i := 0; i < rt.NumField(); i++ {
+		ft := rt.Field(i)
+		if ft.PkgPath != "" { // ignore unexported fields
+			continue
+		}
 		v := fmt.Sprint(rv.Field(i).Interface())
-		tag := strings.TrimSpace(string(rt.Field(i).Tag))
+		tag := strings.TrimSpace(string(ft.Tag))
 		configs = append(configs, Config{
-			Key:     rt.Field(i).Name,
+			Key:     ft.Name,
 			Value:   v,
 			Comment: tag,
 		})
@@ -57,8 +61,13 @@ const (
 	if rt.Kind() != reflect.Struct {
 		return nil, ErrNotStruct
 	}
+	count := 0
 	for i := 0; i < rt.NumField(); i++ {
-		if i > 0 {
+		ft := rt.Field(i)
+		if ft.PkgPath != "" { // ignore unexported fields
+			continue
+		}
+		if count > 0 {
 			output += "\n"
 		}
 		if tag := string(rt.Field(i).Tag); tag != "" {
@@ -68,7 +77,8 @@ const (
 			}
 		}
 		v := fmt.Sprint(rv.Field(i).Interface())
-		output += "\t" + rt.Field(i).Name + " = " + quoteString(v) + "\n"
+		output += "\t" + ft.Name + " = " + quoteString(v) + "\n"
+		count += 1
 	}
 	output += `)
 `
