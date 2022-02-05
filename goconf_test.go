@@ -55,9 +55,13 @@ func ExampleMarshal() {
 		Foo string `
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua.`
-		Hello string
+		Hello  string
+		Bool   bool
+		Number int
+		Uint   uint32
+		Float  float64
 	}{
-		"Bar", "World",
+		"Bar", "World", true, 123, 22, 1.23,
 	}
 	c, err := Marshal(a)
 	if err != nil {
@@ -78,6 +82,14 @@ incididunt ut labore et dolore magna aliqua.`
 	// 	Foo = "Bar"
 	//
 	// 	Hello = "World"
+	//
+	// 	Bool = true
+	//
+	// 	Number = 123
+	//
+	// 	Uint = 22
+	//
+	// 	Float = 1.23
 	// )
 	//
 	// [
@@ -90,14 +102,38 @@ incididunt ut labore et dolore magna aliqua.`
 	//     "Key": "Hello",
 	//     "Value": "World",
 	//     "Comment": ""
+	//   },
+	//   {
+	//     "Key": "Bool",
+	//     "Value": "true",
+	//     "Comment": ""
+	//   },
+	//   {
+	//     "Key": "Number",
+	//     "Value": "123",
+	//     "Comment": ""
+	//   },
+	//   {
+	//     "Key": "Uint",
+	//     "Value": "22",
+	//     "Comment": ""
+	//   },
+	//   {
+	//     "Key": "Float",
+	//     "Value": "1.23",
+	//     "Comment": ""
 	//   }
 	// ]
 }
 
 func ExampleUnmarshal() {
 	var c struct {
-		Foo   string
-		Hello string
+		Foo    string
+		Hello  string
+		Bool   bool
+		Number int
+		Uint   uint32
+		Float  float64
 	}
 	fmt.Printf("before: %+v\n", c)
 	err := Unmarshal([]byte(`
@@ -106,7 +142,11 @@ package config
 const Foo = "BAR"
 
 const (
-	Hello = "WORLD"
+	Hello  = "WORLD"
+	Bool   = true
+	Number = 123
+	Uint   = 22
+	Float  = 1.23
 )
 `), &c)
 	if err != nil {
@@ -114,6 +154,6 @@ const (
 	}
 	fmt.Printf("after: %+v\n", c)
 	// Output:
-	// before: {Foo: Hello:}
-	// after: {Foo:BAR Hello:WORLD}
+	// before: {Foo: Hello: Bool:false Number:0 Uint:0 Float:0}
+	// after: {Foo:BAR Hello:WORLD Bool:true Number:123 Uint:22 Float:1.23}
 }

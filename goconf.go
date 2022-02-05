@@ -87,7 +87,7 @@ const (
 			}
 		}
 		v := fmt.Sprint(rv.Field(i).Interface())
-		output += "\t" + ft.Name + " = " + quoteString(v) + "\n"
+		output += "\t" + ft.Name + " = " + quoteString(ft, v) + "\n"
 		count += 1
 	}
 	output += `)
@@ -118,11 +118,19 @@ func Unmarshal(input []byte, v interface{}) error {
 				continue
 			}
 			for _, v := range vs.Values {
-				bl, ok := v.(*ast.BasicLit)
-				if !ok {
+				var value string
+				var err error
+				if bl, ok := v.(*ast.BasicLit); ok {
+					if bl.Kind == token.STRING {
+						value, err = strconv.Unquote(bl.Value)
+					} else {
+						value = bl.Value
+					}
+				} else if i, ok := v.(*ast.Ident); ok {
+					value = i.Name
+				} else {
 					continue
 				}
-				value, err := strconv.Unquote(bl.Value)
 				if err != nil {
 					return err
 				}
@@ -131,18 +139,42 @@ func Unmarshal(input []byte, v interface{}) error {
 					if !field.IsValid() {
 						continue
 					}
-					if field.Kind() == reflect.Ptr && field.IsNil() {
+					kind := field.Kind()
+					if kind == reflect.Ptr && field.IsNil() {
 						field.Set(reflect.New(field.Type().Elem()))
 					}
-					if field.Kind() == reflect.String {
+					switch field.Kind() {
+					case reflect.String:
 						field.SetString(value)
-					} else if i, ok := field.Interface().(CanSetString); ok {
-						if err := i.SetString(value); err != nil {
+					case reflect.Bool:
+						field.SetBool(value == "true")
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+						i, err := strconv.ParseInt(value, 10, 64)
+						if err != nil {
 							return err
 						}
-					} else if i, ok := field.Addr().Interface().(CanSetString); ok {
-						if err := i.SetString(value); err != nil {
+						field.SetInt(i)
+					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+						i, err := strconv.ParseUint(value, 10, 64)
+						if err != nil {
 							return err
+						}
+						field.SetUint(i)
+					case reflect.Float32, reflect.Float64:
+						f, err := strconv.ParseFloat(value, 64)
+						if err != nil {
+							return err
+						}
+						field.SetFloat(f)
+					default:
+						if i, ok := field.Interface().(CanSetString); ok {
+							if err := i.SetString(value); err != nil {
+								return err
+							}
+						} else if i, ok := field.Addr().Interface().(CanSetString); ok {
+							if err := i.SetString(value); err != nil {
+								return err
+							}
 						}
 					}
 				}
@@ -152,7 +184,14 @@ func Unmarshal(input []byte, v interface{}) error {
 	return nil
 }
 
-func quoteString(in string) string {
+func quoteString(field reflect.StructField, in string) string {
+	switch field.Type.Kind() {
+	case reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return in
+	}
 	if useBackquote(in) {
 		return "`" + in + "`"
 	}
